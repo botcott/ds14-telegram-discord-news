@@ -1,1 +1,1 @@
-# ds14-telegram-discord
+# ds14-telegram-discord-news
