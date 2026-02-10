@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import re
-import subprocess
+import requests
 from urllib.parse import quote
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -18,7 +18,7 @@ DS14_CHANGES_CHANNEL = int(cfg["ds14_changes_channel"])
 TELEGRAM_CHAT_ID = cfg["telegram_chat_id"]
 
 # .env
-TELEGRAM_BOT_TOKEN = "8322759875:AAEV_FusretTvAyS65G_ev07zcZrynrHpto"
+TELEGRAM_BOT_TOKEN = os.getenv("token_telegram")
 
 def handle_headers(m):
     hashes = m.group(1)
@@ -86,15 +86,14 @@ class TelegramDiscordCog(commands.Cog):
         content = "\n".join(line.strip() for line in content.splitlines() if line.strip())
         
         prefix_href = "https://discord.com/channels/1030160796401016883"
-
         if message.channel.id == NOTIF_CHANNEL: 
-            prefix = f"<a href=\"{prefix_href}/1030914308097445939\">Новостное оповещение</a>:\n\n" 
+            prefix = f"<a href=\"{prefix_href}/1030914308097445939\">📰 Новостное оповещение:</a>\n\n" 
         else: 
-            if message.author.webhook_id:
+            try:
                 server_changes  = message.author.name 
-            else:
+            except:
                 server_changes = "Неизвестно"
-            prefix = f"<a href=\"{prefix_href}/1186681361021554818\">Изменение сборки {server_changes}:</a>:\n\n"
+            prefix = f"<a href=\"{prefix_href}/1186681361021554818\">🧑‍💻 Изменение сборки:</a>\n\n"
         
         end_message = "\n\n#Новости\n\nЖдём тебя в <a href=\"https://t.me/deadspace14\">💬Чате станции</a>"
         message_to_telegram = prefix + content + end_message
@@ -103,18 +102,19 @@ class TelegramDiscordCog(commands.Cog):
             return
 
         try:
-            escaped_message = quote(message_to_telegram)
-            curl_cmd = (
-                f'curl -s -X POST '
-                f'"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage" '
-                f'-d "chat_id={TELEGRAM_CHAT_ID}&text={escaped_message}&parse_mode=HTML&disable_web_page_preview=true"'
-            )
-            result = subprocess.run(curl_cmd, shell=True, capture_output=True, text=True)
-
-            if result.returncode != 0:
-                self.logger.error(f"Ошибка curl: {result.stderr}")
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            payload = {
+                "chat_id": TELEGRAM_CHAT_ID,
+                "text": message_to_telegram,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True
+            }
+            response = requests.post(url, data=payload, timeout=10)
+            if response.status_code == 200:
+                self.logger.info("Сообщение успешно отправлено в Telegram")
             else:
-                self.logger.info(f"Отправлено в Telegram: {message_to_telegram}")
-
+                self.logger.error(f"HTTP ошибка: {response.status_code}, {response.text}")
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Ошибка сети: {e}")
         except Exception as e:
-            self.logger.error(f"Ошибка отправки: {e}")
+            self.logger.error(f"Неожиданная ошибка: {e}")
