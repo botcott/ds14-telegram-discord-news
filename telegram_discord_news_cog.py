@@ -85,10 +85,16 @@ class TelegramDiscordCog(commands.Cog):
 
         content = "\n".join(line.strip() for line in content.splitlines() if line.strip())
         
+        prefix_href = "https://discord.com/channels/1030160796401016883"
+
         if message.channel.id == NOTIF_CHANNEL: 
-            prefix = "<a href=\"https://discord.com/channels/1030160796401016883/1186681361021554818\">Новостное оповещение</a>:\n\n" 
+            prefix = f"<a href=\"{prefix_href}/1030914308097445939\">Новостное оповещение</a>:\n\n" 
         else: 
-            prefix = f"<a href=\"https://discord.com/channels/1030160796401016883/1186681361021554818\">Обновление сборки:</a>:\n\n"
+            if message.author.webhook_id:
+                server_changes  = message.author.name 
+            else:
+                server_changes = "Неизвестно"
+            prefix = f"<a href=\"{prefix_href}/1186681361021554818\">Изменение сборки {server_changes}:</a>:\n\n"
         
         end_message = "\n\n#Новости\n\nЖдём тебя в <a href=\"https://t.me/deadspace14\">💬Чате станции</a>"
         message_to_telegram = prefix + content + end_message
